@@ -241,7 +241,7 @@ if __name__=="__main__":
     uri = "mongodb+srv://cluster0.cvl9b.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
     client = MongoClient(uri,
                      tls=True,
-                     tlsCertificateKeyFile='Shoot-Your-Shot/binance.pem')
+                     tlsCertificateKeyFile='binance.pem')
     db = client['shootyoushot']
     collection = db['users']
-    app.run(debug=True, host='0.0.0.0', port=5879)
+    app.run(debug=True, host='0.0.0.0', port=443)
