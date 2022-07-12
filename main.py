@@ -3,6 +3,7 @@ from flask import *
 from pymongo import *
 import json
 import time
+import logging
 global bot, collection
 
 
@@ -245,5 +246,8 @@ if __name__=="__main__":
                      tlsCertificateKeyFile='binance.pem')
     db = client['shootyoushot']
     collection = db['users']
+
+    app.logger.setLevel(logging.DEBUG)
+    app.logger.debug('this will show in the log')
     serve(app,host='0.0.0.0', port=443) # for production have to use serve
     # app.run(debug=False, host='0.0.0.0', port=443)
