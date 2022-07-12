@@ -12,5 +12,6 @@ pymongo==4.1.1
 pyTelegramBotAPI==4.6.0
 requests==2.28.1
 urllib3==1.26.10
+waitress==2.1.2
 Werkzeug==2.1.2
 zipp==3.8.0

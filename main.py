@@ -237,6 +237,7 @@ def index():
 
 
 if __name__=="__main__":
+    from waitress import serve
     bot = TeleBot("5472045640:AAHahE2Pp5iheWd0H2HNsLbKDk2a5YRViKE") 
     uri = "mongodb+srv://cluster0.cvl9b.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
     client = MongoClient(uri,
@@ -244,4 +245,5 @@ if __name__=="__main__":
                      tlsCertificateKeyFile='binance.pem')
     db = client['shootyoushot']
     collection = db['users']
-    app.run(debug=True, host='0.0.0.0', port=443)
+    serve(app,host='0.0.0.0', port=443) # for production have to use serve
+    # app.run(debug=False, host='0.0.0.0', port=443)
