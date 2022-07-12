@@ -3,7 +3,6 @@ from flask import *
 from pymongo import *
 import json
 import time
-import logging
 global bot, collection
 
 
@@ -238,16 +237,11 @@ def index():
 
 
 if __name__=="__main__":
-    from waitress import serve
     bot = TeleBot("5472045640:AAHahE2Pp5iheWd0H2HNsLbKDk2a5YRViKE") 
     uri = "mongodb+srv://cluster0.cvl9b.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
     client = MongoClient(uri,
                      tls=True,
-                     tlsCertificateKeyFile='binance.pem')
+                     tlsCertificateKeyFile='Shoot-Your-Shot/binance.pem')
     db = client['shootyoushot']
     collection = db['users']
-
-    app.logger.setLevel(logging.DEBUG)
-    app.logger.debug('this will show in the log')
-    serve(app,host='0.0.0.0', port=443) # for production have to use serve
-    # app.run(debug=False, host='0.0.0.0', port=443)
+    app.run(debug=True, host='0.0.0.0', port=5879)
