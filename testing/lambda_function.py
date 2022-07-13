@@ -147,7 +147,7 @@ def commandHandler(user_id, message_payload, name, user_id_state):
             # TODO: TEST TO SEE IF THE USER CAN ADD MORE CRUSHSES OR NOT
             add_message = "Send the contact of the person you like as shown in the video below 👇 and we'll let you know if they like you back! 😊"
             send_message(user_id, add_message)
-            bot.send_document(user_id, 'https://cdn.discordapp.com/attachments/628770208319930398/993887301576970270/ezgif.com-gif-maker.gif')
+            bot.send_animation(user_id, 'https://cdn.discordapp.com/attachments/628770208319930398/996796560417488946/RPReplay_Final1657724646.mp4')
         elif '/remove' in text_received:
             resetState(user_id, 2, 1, [])
             if len(user_id_state['app_data']['crushes']) == 0:
