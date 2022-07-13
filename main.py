@@ -61,47 +61,54 @@ def addHandler(user_id, message_payload, name, user_id_state):
             else:
                 crush_userid = message_payload['contact']['user_id']
                 crush_name = message_payload['contact']['first_name']
-                resetState(user_id, 0, 0, [])
-                crush_payload = list(collection.find({"_id": crush_userid}))
-                if len(crush_payload) == 0:
-                    # lyk_message = "🤞 We will keep it a secret and let you know and "+ crush_name +" know whenever they likes you back 🤞"
-                    lyk_message = "🤞 We'll let you know if "+crush_name+" like you back too!"
-                    crushes_lst = collection.find_one({"_id": user_id}, {'app_data.crushes': 1})['app_data']['crushes']
-                    crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name})
-                    print(crushes_lst)
-                    collection.update_one({"_id": user_id}, {"$set": {"app_data.crushes": crushes_lst}})
-                    send_message(user_id, lyk_message)
-                else: 
-                    crush_payload = crush_payload[0]
-                    crushes_of_crush = crush_payload['app_data']['crushes']
-                    no_match = True
-                    for heartbreaks in crushes_of_crush:
-                        if user_id == heartbreaks['user_id_of_crush']:
-                            lyk_message = crush_name + " likes you too ❤️"
-                            send_message(user_id, lyk_message)
-                            message_for_crush = name + " likes you too ❤️"
-                            send_message(crush_userid, message_for_crush)
-                            no_match = False
-                            
-                            mutual_crushes_lst = collection.find_one({"_id": user_id}, {'app_data.mutual_likes': 1})['app_data']['mutual_likes']
-                            mutual_crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name})
-                            collection.update_one({"_id": user_id}, {"$set": {"app_data.mutual_likes": mutual_crushes_lst}})
-                            removeCrush(user_id, crush_userid)
-
-                            mutual_crushes_lst = collection.find_one({"_id": crush_userid}, {'app_data.mutual_likes': 1})['app_data']['mutual_likes']
-                            mutual_crushes_lst.append({"user_id_of_crush": user_id, "time": time.time(), 'first_name': name})
-                            collection.update_one({"_id": crush_userid}, {"$set": {"app_data.mutual_likes": mutual_crushes_lst}})
-                            removeCrush(crush_userid, user_id)
-
-
-
-
-                    if no_match == True:
-                        lyk_message = "🤞 We will keep it a secret and let you know and "+ crush_name +" know whenever they likes you back 🤞"
+                crushes_lst = collection.find_one({"_id": user_id}, {'app_data.crushes': 1})['app_data']['crushes']
+                crushes_ids = []
+                for i in crushes_lst: crushes_ids.append(i['user_id_of_crush'])
+                if crush_userid in crushes_ids:
+                    resetState(user_id, 0, 0, [])
+                    already_exists = crush_name + ' '+'already exists in your likes list :/ Press /add to like someone again.'
+                    send_message(user_id, already_exists)
+                else:
+                    resetState(user_id, 0, 0, [])
+                    crush_payload = list(collection.find({"_id": crush_userid}))
+                    if len(crush_payload) == 0:
+                        lyk_message = "🤞 We will keep it a secret and let you and "+crush_name+" know whenever they like you back 🤞"
                         crushes_lst = collection.find_one({"_id": user_id}, {'app_data.crushes': 1})['app_data']['crushes']
                         crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name})
+                        print(crushes_lst)
                         collection.update_one({"_id": user_id}, {"$set": {"app_data.crushes": crushes_lst}})
                         send_message(user_id, lyk_message)
+                    else: 
+                        crush_payload = crush_payload[0]
+                        crushes_of_crush = crush_payload['app_data']['crushes']
+                        no_match = True
+                        for heartbreaks in crushes_of_crush:
+                            if user_id == heartbreaks['user_id_of_crush']:
+                                lyk_message = crush_name + " likes you too ❤️"
+                                send_message(user_id, lyk_message)
+                                message_for_crush = name + " likes you too ❤️"
+                                send_message(crush_userid, message_for_crush)
+                                no_match = False
+                                
+                                mutual_crushes_lst = collection.find_one({"_id": user_id}, {'app_data.mutual_likes': 1})['app_data']['mutual_likes']
+                                mutual_crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name})
+                                collection.update_one({"_id": user_id}, {"$set": {"app_data.mutual_likes": mutual_crushes_lst}})
+                                removeCrush(user_id, crush_userid)
+
+                                mutual_crushes_lst = collection.find_one({"_id": crush_userid}, {'app_data.mutual_likes': 1})['app_data']['mutual_likes']
+                                mutual_crushes_lst.append({"user_id_of_crush": user_id, "time": time.time(), 'first_name': name})
+                                collection.update_one({"_id": crush_userid}, {"$set": {"app_data.mutual_likes": mutual_crushes_lst}})
+                                removeCrush(crush_userid, user_id)
+
+
+
+
+                        if no_match == True:
+                            lyk_message = "🤞 We will keep it a secret and let you and "+crush_name+" know whenever they like you back 🤞"
+                            crushes_lst = collection.find_one({"_id": user_id}, {'app_data.crushes': 1})['app_data']['crushes']
+                            crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name})
+                            collection.update_one({"_id": user_id}, {"$set": {"app_data.crushes": crushes_lst}})
+                            send_message(user_id, lyk_message)
                         
 
 
@@ -124,7 +131,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                 resetState(user_id, 0, 0, [])
 
             else:
-                error_message = "Please enter a valid number which corresponds to the crush you want to remove"
+                error_message = "Please enter a valid number which corresponds to the like you want to remove"
                 send_message(user_id, error_message)
 
 
@@ -146,7 +153,7 @@ def commandHandler(user_id, message_payload, name, user_id_state):
         elif '/remove' in text_received:
             resetState(user_id, 2, 1, [])
             if len(user_id_state['app_data']['crushes']) == 0:
-                remove_message = 'You have not liked anyone yet! Click on /add to add a crush :)'
+                remove_message = 'You have not liked anyone yet! Click on /add to add a like and shoot your shot 🎯'
                 resetState(user_id, 0, 0, [])
                 send_message(user_id, remove_message)
             else:
@@ -157,20 +164,20 @@ def commandHandler(user_id, message_payload, name, user_id_state):
 
         elif '/view' in text_received:
             if len(user_id_state['app_data']['crushes']) == 0:
-                remove_message = 'You have not liked anyone yet! Click on /add to add a crush :)'
+                remove_message = 'You have not liked anyone yet! Click on /add to add a like and shoot your shot 🎯'
                 send_message(user_id, remove_message)
             else:
                 view_payload = "Here are your likes!"
                 send_message(user_id, view_payload)
                 viewHandler(user_id, message_payload, name, user_id_state)
         elif '/about' in text_received:
-            about_message = "This bot aims to help users to confess to their persons of interest in an anonymous manner. We believe that users, who are shy but have a liking for another person, can convey their interest to them without any fear of exposure or rejection. As such, the bot will keep the confession a secret until your person of interest also sends your contact to the bot. We will then notify both of you of the match :) If you have any suggestions for our bot, send them in at https://forms.gle/pGeHr9AKCb6C2JoQ6. Thank you!"
+            about_message = "💓 This bot aims to help users to confess to their persons of interest in an anonymous manner.\n\n😌 We wish to help users who are shy to 'shoot' their interest without any fear of exposure or rejection.\n\n🤐 The bot keeps the confession a secret until your person of interest shoots you as well. We will then notify both persons of the match :)\n\n💡If you have any suggestions for the bot, send them in at https://forms.gle/pGeHr9AKCb6C2JoQ6. Thank you!"
             send_message(user_id, about_message)
         elif '/suggestion' in text_received:
             suggestion_message = "https://forms.gle/pGeHr9AKCb6C2JoQ6"
-            send_message(user_id, about_message)
+            send_message(user_id, suggestion_message)
         elif '/privacy' in text_received:
-            privacy = "Your or your liked person's phone number and all personally identifiable data **are not** stored in our database. We only store what's absolutely necessary for the bot to function."
+            privacy = "Your or your person of interest's phone number and all personally identifiable data **are not** stored in our database. We only store what's absolutely necessary for the bot to function."
             send_message(user_id, privacy)
 
 
