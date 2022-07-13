@@ -1,5 +1,3 @@
 # Shoot-Your-Shot
 
-Purpose of main.py: Flask
-Purpose of lambda.py: Lambda Handler
-Purpose of test.py: To test lambda functions
+To deploy, zip the content of deployment folder and push to lambda. Also keep on making same changes to main.py which is used for local testing.
