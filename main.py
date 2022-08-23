@@ -1,3 +1,4 @@
+from gc import collect
 from telebot import *
 from flask import *
 from pymongo import *
@@ -23,7 +24,14 @@ def send_message(user_id, message):
 
 
 def extract_liked_number(text_received):
-    number = text_received.replace('/like ')
+    try:
+        parsed_number = phonenumbers.parse(text_received, None)
+    except:
+        print(text_received)
+        return False
+    if phonenumbers.is_valid_number(parsed_number):
+        return parsed_number
+    return False
 
 
 
@@ -47,6 +55,8 @@ def initializeUser(user_id, message_payload, name):
         detected_user_id = message_payload['contact']['user_id']
         if detected_user_id == user_id:
             phone_number = message_payload['contact']['phone_number']
+            if "+" not in phone_number:
+                phone_number = "+" + str(phone_number)
             user_id_state = collection.find({'_id': phone_number})
             if len(list(user_id_state)) == 0:
                 collection.insert_one({
@@ -101,6 +111,43 @@ def initializeUser(user_id, message_payload, name):
 
 
 
+def addHandler(user_id, message_payload, name, user_id_state):
+    global collection, bot
+    if user_id_state['chat_state']['convo_state'] == 1:
+        message_payload = message_payload['message']
+        if 'text' not in message_payload:
+            send_message('Please sent the text of the nickname only!')
+            return None
+        else:
+            if len(str(message_payload['text'])) > 16:
+                send_message(user_id, 'Please keep the name short and sweet :) (aka less than 16 characters).')
+                return None
+        meta_data = user_id_state["chat_state"]["meta_data"]
+        meta_data.append(message_payload['text'])
+        resetState(user_id, 1, 2, meta_data)  
+        confirmation = "Kindly press the button below to confirm the details of your like:\nPhone Number: "+str(meta_data[0])+"\nNickname: "+meta_data[1]
+        button_Confirm = types.InlineKeyboardButton('Confirm!', callback_data='Confirm')
+        button_ReEnter = types.InlineKeyboardButton('Re-enter!', callback_data='Re-enter')
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(button_Confirm)
+        keyboard.add(button_ReEnter)
+        bot.send_message(user_id, confirmation, reply_markup=keyboard)
+    if user_id_state['chat_state']['convo_state'] == 2:
+        if 'reply_markup' not in message_payload['message']:
+            send_message(user_id, "Please press either of the buttons on the top or press /cancel to cancel current operation.")
+        else:
+            button_of_choice = message_payload['data']
+            if button_of_choice == 'Re-enter':
+                send_message(user_id, "Kindly re-enter the person you like.")
+                resetState(user_id, 0, 0, [])
+                return '.'
+            meta_data = user_id_state['chat_state']['meta_data']
+            likes_states = user_id_state['app_data']['likes']
+            # Either it's about to be a mutual like or a first time like
+            
+
+
+
 def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
     if 'text' in message_payload:
         text_received = message_payload['text']
@@ -108,9 +155,31 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
             if LikesLeft(user_id) == False: # TODO: Likes left checker
                 send_message(user_id, "Sorry, you have no more likes left.")
                 return None
-            number = extract_liked_number(text_received)
-            if number == False: # Format is incorrect for the number entered
-                pass
+            number = text_received
+            if extract_liked_number(number) == False: # Format is incorrect for the number entered
+                send_message(user_id, "Please re-enter the number of the person you like in the proper format!\n Use '/like +65 XXXX XXXX' to add the contact of your person of interest.")
+                return None
+            number = extract_liked_number(number)
+            final_number = "+"+str(number.country_code)+str(number.national_number)
+            likes_states = user_id_state['app_data']['likes']
+            final_number_in_likes_states = False
+            index = 0
+            for likes in likes_states:
+                if likes['phone_number'] == final_number:
+                    final_number_in_likes_states = True
+                    index += 1
+            if final_number_in_likes_states == True: # Not the first relation between these 2 accounts
+                relation_state = likes_states[index]
+                if relation_state['liked_state'] == 0 or relation_state['liked_state'] == 2:
+                    send_message(user_id, "You have already previously liked this person!")
+                    return None
+                text_16 = "Enter the nickname of the person you like!"
+                send_message(user_id, text_16) 
+                resetState(user_id, 1, 1, [final_number])
+            else: # First relation between these 2 account 
+                text_16 = "Enter the nickname of the person you like!"
+                send_message(user_id, text_16) 
+                resetState(user_id, 1, 1, [final_number])
 
 
 
@@ -130,24 +199,32 @@ def MessageHandler(user_id, message_payload, name, user_id_state):
                 return None
         if user_id_state['chat_state']['fn_id'] == 0: # Check for any commands
             commandHandler(user_id, phone_number, message_payload, name, user_id_state)
-
-
+        elif user_id_state['chat_state']['fn_id'] == 1: # Send over /add handler
+            addHandler(user_id, message_payload, name, user_id_state)
 
 
 
 @app.route("/", methods=['POST'])
 def index():
     input_tele = json.loads(request.data.decode())
-    if 'message' not in input_tele:
+    if 'message' not in input_tele and 'my_chat_member' in input_tele:
         user_id = input_tele['my_chat_member']['chat']['id']
         resetState(user_id, 0, 0, [])
         return '.'
-    user_id = input_tele['message']['from']['id']
-    name = input_tele['message']['from']['first_name']
-    message_payload = input_tele['message']
-    user_id_state = collection.find({'telegram_user_id': {'$eq': user_id}})
-    MessageHandler(user_id, message_payload, name, user_id_state)
-    return '.'
+    elif 'message' in input_tele:
+        user_id = input_tele['message']['from']['id']
+        name = input_tele['message']['from']['first_name']
+        message_payload = input_tele['message']
+        user_id_state = collection.find({'telegram_user_id': {'$eq': user_id}})
+        MessageHandler(user_id, message_payload, name, user_id_state)
+        return '.'
+    else:
+        user_id = input_tele['callback_query']['message']['chat']['id']    
+        name = input_tele['callback_query']['message']['chat']['first_name']
+        message_payload = input_tele['callback_query']
+        user_id_state = collection.find({'telegram_user_id': {'$eq': user_id}})
+        MessageHandler(user_id, message_payload, name, user_id_state)
+        return '.'
 
 
 
