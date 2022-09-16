@@ -320,7 +320,7 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                 send_message(user_id, "Please re-enter the number of the person you like in the proper format!\n Use '/like +65 XXXX XXXX' to add the contact of your person of interest.")
                 return None
             number = extract_liked_number(number)
-            final_number = "+"+str(number.country_code)+str(number.national_number)
+            final_number = f"+{str(number.country_code)} {str(number.national_number)}"
             likes_states = user_id_state['app_data']['likes']
             final_number_in_likes_states = False
             index = 0
