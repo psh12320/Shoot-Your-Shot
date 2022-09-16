@@ -56,11 +56,12 @@ def extract_liked_number(text_received):
     try:
         parsed_number = phonenumbers.parse(text_received, None)
     except:
-        print(text_received)
-        return False
+        if "+" not in text_received:
+            return 0
+        return 1
     if phonenumbers.is_valid_number(parsed_number):
         return parsed_number
-    return False
+    return 1
 
 
 
@@ -312,7 +313,10 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                 send_message(user_id, "Sorry, you have no more likes left.")
                 return None
             number = text_received
-            if extract_liked_number(number) == False: # Format is incorrect for the number entered
+            if extract_liked_number(number) == 0: # No areacode 
+                send_message(user_id, "Please include area code in the phone number")
+                return None
+            if extract_liked_number(number) == 1: # Format is incorrect for the number entered
                 send_message(user_id, "Please re-enter the number of the person you like in the proper format!\n Use '/like +65 XXXX XXXX' to add the contact of your person of interest.")
                 return None
             number = extract_liked_number(number)
