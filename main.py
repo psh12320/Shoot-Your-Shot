@@ -270,6 +270,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
             button_of_choice = message_payload['data']
             if button_of_choice == 'No':
                 send_message(user_id, 'Alright! Use /like to like someone else')
+                delete_button(message_payload["message_id"])
                 resetState(user_id, 0, 0, [])
             elif button_of_choice == 'Yes':
                 likes_state = user_id_state["app_data"]['likes']
