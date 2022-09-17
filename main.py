@@ -30,6 +30,9 @@ text_dic = {
     "like_confirmation_1":"Kindly press the button below to confirm the details of your like:\nPhone Number: ",
     "like_confirmation_2":"\nNickname: ",
     "button_or_cancel":"Please press either of the buttons on the top or press /cancel to cancel current operation.",
+    "re_enter_like":"Kindly re-enter the person you like.",
+    "Alright":"Alright! Use /like to like someone else",
+    "select_remove_like":"Select the name of person you wish to remove from likes: ",
     
 }
 
@@ -217,7 +220,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
             button_of_choice = message_payload['data']
             delete_message(message_payload)
             if button_of_choice == 'Re-enter':
-                send_message(user_id, "Kindly re-enter the person you like.")
+                send_message(user_id, text_response("re_enter_like"))
                 resetState(user_id, 0, 0, [])
                 return '.'
             meta_data = user_id_state['chat_state']['meta_data']
@@ -271,7 +274,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
     global collection, bot
     if user_id_state['chat_state']['convo_state'] == 1:
         if 'message' not in message_payload:
-            send_message(user_id, "Please press either of the buttons on the top or press /cancel to cancel current operation.")
+            send_message(user_id, text_response("button_or_cancel"))
         else:
             delete_message(message_payload)
             button_of_choice = message_payload['data']
@@ -307,13 +310,13 @@ def removeHandler(user_id, message_payload, name, user_id_state):
             resetState(user_id, 2, 2, [])
     elif user_id_state['chat_state']['convo_state'] == 2:
         if 'message' not in message_payload:
-            send_message(user_id, "Please press either of the buttons on the top or press /cancel to cancel current operation.")
+            send_message(user_id, text_response("button_or_cancel"))
         else:
             button_of_choice = message_payload['data']
             delete_message(message_payload)
 
             if button_of_choice == 'No':
-                send_message(user_id, 'Alright! Use /like to like someone else')
+                send_message(user_id, text_response("Alright"))
                 resetState(user_id, 0, 0, [])
             elif button_of_choice == 'Yes':
                 likes_state = user_id_state["app_data"]['likes']
@@ -323,8 +326,6 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                         liked.append(like['nick_name'])
                 if len(liked) == 0:
                     resetState(user_id, 0, 0, [])
-                    delete_message(message_payload)
-                    
                     send_message(user_id, text_response("no_likes"))
                     return '.'
                 keyboard = types.InlineKeyboardMarkup()
@@ -344,7 +345,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                             keyboard.row(i[0], i[1])
                         else:
                             keyboard.row(i[0])
-                bot.send_message(user_id, "Select the name of person you wish to remove from likes: ", reply_markup=keyboard)
+                bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
                 resetState(user_id, 2, 1, [])
 
 
@@ -425,7 +426,7 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                     keyboard.row(i[0], i[1])
                 else:
                     keyboard.row(i[0])
-            bot.send_message(user_id, "Select the name of person you wish to remove from likes: ", reply_markup=keyboard)
+            bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
             resetState(user_id, 2, 1, [])
         elif '/privacy' in text_received:
             privacy = "The only identifiable information we have on you is your **phone number** 📞\nThe data is stored with military grade encryption and no one can access it."
