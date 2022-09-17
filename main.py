@@ -128,9 +128,10 @@ def extract_liked_number(text_received):
         return parsed_number
     return 1
 
-def cancel_handler(user_id):
+def cancel_handler(user_id,reply=False):
     resetState(user_id, 0, 0, {})
-    send_message(user_id, text_dic["cancel"])
+    if reply:
+        send_message(user_id, text_dic["cancel"])
 
 def resetState(user_id, fn_id, convo_state, meta_data):
     global collection
@@ -447,7 +448,7 @@ def MessageHandler(user_id, message_payload, name, user_id_state):
         phone_number = user_id_state['_id']
         if "text" in message_payload:
             if '/cancel' in message_payload['text']:
-                cancel_handler(user_id)
+                cancel_handler(user_id,True)
                 return None
         if user_id_state['chat_state']['fn_id'] == 0: # Check for any commands
             commandHandler(user_id, phone_number, message_payload, name, user_id_state)
