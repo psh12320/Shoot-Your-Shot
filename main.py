@@ -129,7 +129,7 @@ def extract_liked_number(text_received):
     return 1
 
 def cancel_handler(user_id):
-    resetState(user_id, 0, 0, [])
+    resetState(user_id, 0, 0, {})
     send_message(user_id, text_dic["cancel"])
 
 def resetState(user_id, fn_id, convo_state, meta_data):
@@ -256,7 +256,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
                 send_message(user_id, text_response("nick_like",{"nickname":to_add_nickname}))
                 liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))
                 send_message(liked_person_userid_state['telegram_user_id'], text_response("nick_like",{"nickname":liked_person_liked_state[index]['nick_name']}))
-                resetState(user_id, 0, 0, [])
+                cancel_handler(user_id)
             else: # First time liking
                 likes_states.append({"phone_number": to_add_phone_number, "liked_state": 2, "nick_name": to_add_nickname})
                 registered_already = register_number(to_add_phone_number) # If number hasn't been registered yet, it will return False
@@ -271,7 +271,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
                 liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))  # TODO: INEFFICIENY 
                 if liked_person_userid_state['user_data']['registered']:
                     send_message(liked_person_userid_state['telegram_user_id'], text_response("someone_liked"))
-                resetState(user_id, 0, 0, []) 
+                cancel_handler(user_id) 
                 return '.'
                 
 def removeHandler(user_id, message_payload, name, user_id_state):
@@ -320,7 +320,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
             delete_message(message_payload)
             if button_of_choice == 'No':
                 send_message(user_id, text_response("Alright"))
-                resetState(user_id, 0, 0, {})
+                cancel_handler(user_id)
             elif button_of_choice == 'Yes':
                 likes_state = user_id_state["app_data"]['likes']
                 liked = []
@@ -328,7 +328,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                     if like['liked_state'] == 0 or like['liked_state'] == 2:
                         liked.append(like['nick_name'])
                 if len(liked) == 0:
-                    resetState(user_id, 0, 0, {})
+                    cancel_handler(user_id)
                     send_message(user_id, text_response("no_likes"))
                     return '.'
                 keyboard = types.InlineKeyboardMarkup()
@@ -349,7 +349,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                         else:
                             keyboard.row(i[0])
                 bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
-                resetState(user_id, 2, 1, [])
+                resetState(user_id, 2, 1, {})
 
 def add_like_number(user_id, phone_number, message_payload, name, user_id_state,text_received):
     if LikesLeft(user_id) == False: # TODO: Likes left checker
@@ -390,7 +390,7 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
         if '/like' in text_received:
             add_like_number(user_id, phone_number, message_payload, name, user_id_state,text_received)     
         elif '/view' in text_received:
-            resetState(user_id, 0, 0, [])
+            cancel_handler(user_id)
             if len(user_id_state["app_data"]['likes']) == 0:
                 send_message(user_id, text_response("no_likes"))
                 return '.'
@@ -403,7 +403,7 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                     liked.append(like['nick_name'])
             if len(liked) == 0:
                 send_message(user_id, text_response("no_likes"))
-                resetState(user_id, 0, 0, [])
+                cancel_handler(user_id)
                 return '.'
             keyboard = types.InlineKeyboardMarkup()
             duo_liked = []
@@ -427,7 +427,7 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                 else:
                     keyboard.row(i[0])
             bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
-            resetState(user_id, 2, 1, [])
+            resetState(user_id, 2, 1, {})
         elif '/privacy' in text_received:#https://core.telegram.org/bots/api#formatting-options need to do this 
             privacy = "The only identifiable information we have on you is your **phone number** 📞\nThe data is stored with military grade encryption and no one can access it."
             send_message(user_id, privacy)
@@ -462,7 +462,7 @@ def index():
     input_tele = json.loads(request.data.decode())
     if 'message' not in input_tele and 'my_chat_member' in input_tele:
         user_id = input_tele['my_chat_member']['chat']['id']
-        resetState(user_id, 0, 0, [])
+        cancel_handler(user_id)
         return '.'
     elif 'message' in input_tele:
         user_id = input_tele['message']['from']['id']
