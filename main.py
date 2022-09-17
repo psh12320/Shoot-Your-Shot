@@ -114,7 +114,6 @@ def send_message(user_id, message):
     bot.send_message(user_id, message)
 
 def delete_message(message_payload):
-    print("delete has been called")
     global bot, collection
     bot.delete_message(message_payload["from"]["id"], int(message_payload["message"]["message_id"])) #this has to have the chat id of the bot itself which I don't have currently so please change the userid of the bot
 
@@ -194,27 +193,31 @@ def initializeUser(user_id, message_payload, name):
         keyboard.add(button_phone) 
         bot.send_message(user_id, text_response("welcome",{"name":name}), reply_markup = keyboard)
 
+def add_nickname_manager(user_id, message_payload, name, user_id_state):
+#message_payload = message_payload['message']
+    if 'text' not in message_payload:
+        send_message(user_id,text_response("only_nick"))
+        return None
+    else:
+        if len(str(message_payload['text'])) > 16:
+            send_message(user_id, text_response("max_char"))
+            return None
+    meta_data = user_id_state["chat_state"]["meta_data"]
+    meta_data.append(message_payload['text'])
+    resetState(user_id, 1, 2, meta_data)  
+    # confirmation = "Kindly press the button below to confirm the details of your like:\nPhone Number: "+str(meta_data[0])+"\nNickname: "+meta_data[1]
+    button_Confirm = types.InlineKeyboardButton('Confirm!', callback_data='Confirm')
+    button_ReEnter = types.InlineKeyboardButton('Re-enter!', callback_data='Re-enter')
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(button_Confirm)
+    keyboard.add(button_ReEnter)
+    bot.send_message(user_id, text_response("like_confirmation",{"phone":str(meta_data[0]),"nickname":meta_data[1]}), reply_markup=keyboard)
+
+
 def addHandler(user_id, message_payload, name, user_id_state):
     global collection, bot
     if user_id_state['chat_state']['convo_state'] == 1:
-        #message_payload = message_payload['message']
-        if 'text' not in message_payload:
-            send_message(user_id,text_response("only_nick"))
-            return None
-        else:
-            if len(str(message_payload['text'])) > 16:
-                send_message(user_id, text_response("max_char"))
-                return None
-        meta_data = user_id_state["chat_state"]["meta_data"]
-        meta_data.append(message_payload['text'])
-        resetState(user_id, 1, 2, meta_data)  
-        # confirmation = "Kindly press the button below to confirm the details of your like:\nPhone Number: "+str(meta_data[0])+"\nNickname: "+meta_data[1]
-        button_Confirm = types.InlineKeyboardButton('Confirm!', callback_data='Confirm')
-        button_ReEnter = types.InlineKeyboardButton('Re-enter!', callback_data='Re-enter')
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(button_Confirm)
-        keyboard.add(button_ReEnter)
-        bot.send_message(user_id, text_response("like_confirmation",{"phone":str(meta_data[0]),"nickname":meta_data[1]}), reply_markup=keyboard)
+        add_nickname_manager(user_id, message_payload, name, user_id_state)
     if user_id_state['chat_state']['convo_state'] == 2:
         if 'message' not in message_payload:
             send_message(user_id, text_response("button_or_cancel"))
