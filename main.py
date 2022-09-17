@@ -198,10 +198,9 @@ def add_nickname_manager(user_id, message_payload, name, user_id_state):
     if 'text' not in message_payload:
         send_message(user_id,text_response("only_nick"))
         return None
-    else:
-        if len(str(message_payload['text'])) > 16:
-            send_message(user_id, text_response("max_char"))
-            return None
+    elif len(str(message_payload['text'])) > 16:
+        send_message(user_id, text_response("max_char"))
+        return None
     meta_data = user_id_state["chat_state"]["meta_data"]
     meta_data.append(message_payload['text'])
     resetState(user_id, 1, 2, meta_data)  
@@ -227,7 +226,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
             delete_message(message_payload)
             if button_of_choice == 'Re-enter':
                 send_message(user_id, text_response("re_enter_like"))
-                resetState(user_id, 0, 0, [])
+                resetState(user_id, 1, 1, user_id_state["chat_state"]["meta_data"])
                 return '.'
             meta_data = user_id_state['chat_state']['meta_data']
             likes_states = user_id_state['app_data']['likes']
