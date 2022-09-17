@@ -89,7 +89,7 @@ def register_number(phone_number):
                         {
                             "fn_id": 0,
                             "convo_state": 0,
-                            "meta_data": []
+                            "meta_data": {}
                         },
                     "app_data":
                         {
@@ -153,7 +153,7 @@ def initializeUser(user_id, message_payload, name):
                         {
                             "fn_id": 0,
                             "convo_state": 0,
-                            "meta_data": []
+                            "meta_data": {}
                         },
                     "app_data":
                         {
@@ -193,7 +193,7 @@ def initializeUser(user_id, message_payload, name):
         keyboard.add(button_phone) 
         bot.send_message(user_id, text_response("welcome",{"name":name}), reply_markup = keyboard)
 
-def add_nickname_manager(user_id, message_payload, name, user_id_state):
+def add_like_nickname(user_id, message_payload, name, user_id_state):
 #message_payload = message_payload['message']
     if 'text' not in message_payload:
         send_message(user_id,text_response("only_nick"))
@@ -202,7 +202,7 @@ def add_nickname_manager(user_id, message_payload, name, user_id_state):
         send_message(user_id, text_response("max_char"))
         return None
     meta_data = user_id_state["chat_state"]["meta_data"]
-    meta_data.append(message_payload['text'])
+    meta_data["nickname"]= message_payload['text']
     resetState(user_id, 1, 2, meta_data)  
     # confirmation = "Kindly press the button below to confirm the details of your like:\nPhone Number: "+str(meta_data[0])+"\nNickname: "+meta_data[1]
     button_Confirm = types.InlineKeyboardButton('Confirm!', callback_data='Confirm')
@@ -210,13 +210,13 @@ def add_nickname_manager(user_id, message_payload, name, user_id_state):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(button_Confirm)
     keyboard.add(button_ReEnter)
-    bot.send_message(user_id, text_response("like_confirmation",{"phone":str(meta_data[0]),"nickname":meta_data[1]}), reply_markup=keyboard)
+    bot.send_message(user_id, text_response("like_confirmation",{"phone":str(meta_data["phone_number"]),"nickname":meta_data["nickname"]}), reply_markup=keyboard)
 
 
 def addHandler(user_id, message_payload, name, user_id_state):
     global collection, bot
     if user_id_state['chat_state']['convo_state'] == 1:
-        add_nickname_manager(user_id, message_payload, name, user_id_state)
+        add_like_nickname(user_id, message_payload, name, user_id_state)
     if user_id_state['chat_state']['convo_state'] == 2:
         if 'message' not in message_payload:
             send_message(user_id, text_response("button_or_cancel"))
@@ -228,11 +228,12 @@ def addHandler(user_id, message_payload, name, user_id_state):
                 send_message(user_id, text_response("re_enter_like"))
                 resetState(user_id, 1, 1, user_id_state["chat_state"]["meta_data"])
                 return '.'
+            
             meta_data = user_id_state['chat_state']['meta_data']
             likes_states = user_id_state['app_data']['likes']
             # Either it's about to be a mutual like or a first time like
-            to_add_phone_number = meta_data[0]
-            to_add_nickname = meta_data[1]
+            to_add_phone_number = meta_data["phone_number"]
+            to_add_nickname = meta_data["nickname"]
             too_add_number_in_likes_states = False
             index = 0
             for likes in likes_states:
@@ -310,7 +311,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
             keyboard.add(button_Confirm)
             keyboard.add(button_ReEnter)
             bot.send_message(user_id, confirmation, reply_markup=keyboard)
-            resetState(user_id, 2, 2, [])
+            resetState(user_id, 2, 2, {})
     elif user_id_state['chat_state']['convo_state'] == 2:
         if 'message' not in message_payload:
             send_message(user_id, text_response("button_or_cancel"))
@@ -319,7 +320,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
             delete_message(message_payload)
             if button_of_choice == 'No':
                 send_message(user_id, text_response("Alright"))
-                resetState(user_id, 0, 0, [])
+                resetState(user_id, 0, 0, {})
             elif button_of_choice == 'Yes':
                 likes_state = user_id_state["app_data"]['likes']
                 liked = []
@@ -327,7 +328,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                     if like['liked_state'] == 0 or like['liked_state'] == 2:
                         liked.append(like['nick_name'])
                 if len(liked) == 0:
-                    resetState(user_id, 0, 0, [])
+                    resetState(user_id, 0, 0, {})
                     send_message(user_id, text_response("no_likes"))
                     return '.'
                 keyboard = types.InlineKeyboardMarkup()
@@ -350,41 +351,44 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                 bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
                 resetState(user_id, 2, 1, [])
 
+def add_like_number(user_id, phone_number, message_payload, name, user_id_state,text_received):
+    if LikesLeft(user_id) == False: # TODO: Likes left checker
+        send_message(user_id, text_response("no_more_likes") )
+        return None
+    number = text_received
+    if extract_liked_number(number) == 0: # No areacode 
+        send_message(user_id, text_response("no_area_code") )
+        return None
+    if extract_liked_number(number) == 1: # Format is incorrect for the number entered
+        send_message(user_id,text_response("proper_format") )
+        return None
+    number = extract_liked_number(number)
+    final_number = f"+{str(number.country_code)} {str(number.national_number)}"
+    likes_states = user_id_state['app_data']['likes']
+    final_number_in_likes_states = False
+    index = 0
+    for likes in likes_states:
+        if likes['phone_number'] == final_number:
+            final_number_in_likes_states = True
+            break
+        index += 1
+    if final_number_in_likes_states == True: # Not the first relation between these 2 accounts
+        relation_state = likes_states[index]
+        if relation_state['liked_state'] == 0 or relation_state['liked_state'] == 2:
+            send_message(user_id, text_response("liked_already") )
+            return None
+        send_message(user_id, text_response("enter_nick")) 
+        resetState(user_id, 1, 1, {"phone_number":final_number})
+    else: # First relation between these 2 account 
+        send_message(user_id, text_response("enter_nick")) 
+        resetState(user_id, 1, 1, {"phone_number":final_number})
+
 def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
     global bot
     if 'text' in message_payload:
         text_received = message_payload['text']
         if '/like' in text_received:
-            if LikesLeft(user_id) == False: # TODO: Likes left checker
-                send_message(user_id, text_response("no_more_likes") )
-                return None
-            number = text_received
-            if extract_liked_number(number) == 0: # No areacode 
-                send_message(user_id, text_response("no_area_code") )
-                return None
-            if extract_liked_number(number) == 1: # Format is incorrect for the number entered
-                send_message(user_id,text_response("proper_format") )
-                return None
-            number = extract_liked_number(number)
-            final_number = f"+{str(number.country_code)} {str(number.national_number)}"
-            likes_states = user_id_state['app_data']['likes']
-            final_number_in_likes_states = False
-            index = 0
-            for likes in likes_states:
-                if likes['phone_number'] == final_number:
-                    final_number_in_likes_states = True
-                    break
-                index += 1
-            if final_number_in_likes_states == True: # Not the first relation between these 2 accounts
-                relation_state = likes_states[index]
-                if relation_state['liked_state'] == 0 or relation_state['liked_state'] == 2:
-                    send_message(user_id, text_response("liked_already") )
-                    return None
-                send_message(user_id, text_response("enter_nick")) 
-                resetState(user_id, 1, 1, [final_number])
-            else: # First relation between these 2 account 
-                send_message(user_id, text_response("enter_nick")) 
-                resetState(user_id, 1, 1, [final_number])
+            add_like_number(user_id, phone_number, message_payload, name, user_id_state,text_received)     
         elif '/view' in text_received:
             resetState(user_id, 0, 0, [])
             if len(user_id_state["app_data"]['likes']) == 0:
