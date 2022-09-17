@@ -9,7 +9,59 @@ global bot, collection
 
 app = Flask(__name__)
 
+text_dic = {
+    "welcome_1":"Hi ",
+    "welcome_2":", please register your number!",
+    "wrong_number_1":"Hi ",
+    "wrong_number_2":", please register your number!",
+    "ask_like":"Use /like +65 XXXX XXXX to add the contact of your person of interest.",
+    "assure_secret":"We’ll keep it a secret 🤫…and let the both of you know when you have liked each other!",
+    "nick_like":" likes you too! ❤️",
+    "no_likes":"You have not liked anyone yet. Use /like to send a contact or username",
+    "removed_like":" was removed from your list of likes.",# needs a param={"button": button_name}
+    "received_like_1":"You have already received ",
+    "received_like_2":" likes from secret admirers!",
+    "cancel":"You are back in main menu",
+    "someone_liked":"Someone likes you! Use /like to find out who!",
+    "registered":"Congrats you have been successfully registered!",
+    "enter_nick":"Enter the nickname of the person you like!",
+    "max_char":"Please keep the name short and sweet, less than 16 characters.",
+}
 
+def text_response(i,params = None): #welcome has name inside so params = {"name": name}
+    if params == None:
+        return text_dic[i]
+    else:
+        if i=="welcome":
+            return f"{text_dic['welcome_1']}{params['name']}{text_dic['welcome_2']}"
+        if i=="wrong_number":
+            return f"{text_dic['wrong_number_1']}{params['name']}{text_dic['wrong_number_2']}"
+        if i=="nick_like":
+            return f"{params['nickname']}{text_dic['nick_like']}"
+        if i=="removed_like":
+            return f"{params['button']}{text_dic['removed_like']}"
+        if i=="received_like":
+            return f"{text_dic['received_like_1']}{params['like_count']}{text_dic['received_like_2']}"
+        if i=="display_like":
+            string_out = ""
+            likes_state = params["likes_state"]
+            liked = []
+            mutual_liked = []
+            for like in likes_state:
+                if like['liked_state'] == 0: # Mutual like
+                    mutual_liked.append(like['nick_name'])
+                elif like['liked_state'] == 2: # Simple like
+                    liked.append(like['nick_name'])
+            if len(liked) != 0:
+                string_out += "You have liked:\n"
+                for index,name in enumerate(liked):
+                    string_out += f"{index+1}. {name}\n"
+                string_out +=  "\n"*3
+            if len(mutual_liked) != 0:
+                string_out += "Mutual likes:\n"
+                for index,name in enumerate(mutual_liked):
+                    string_out += f"{index+1}. {name}\n"
+            return string_out
 
 def register_number(phone_number):
     global collection
@@ -38,12 +90,8 @@ def register_number(phone_number):
         return False
     return True
 
-
-
 def LikesLeft(user_id):
     return True
-
-
 
 def send_message(user_id, message):
     global bot, collection
@@ -53,7 +101,6 @@ def delete_message(message_payload):
     print("delete has been called")
     global bot, collection
     bot.delete_message(message_payload["from"]["id"], int(message_payload["message"]["message_id"])) #this has to have the chat id of the bot itself which I don't have currently so please change the userid of the bot
-
 
 def extract_liked_number(text_received):
     try:
@@ -66,12 +113,9 @@ def extract_liked_number(text_received):
         return parsed_number
     return 1
 
-
-
 def cancel_handler(user_id):
     resetState(user_id, 0, 0, [])
-    text_7 = "Your current operation was cancelled."
-    send_message(user_id, text_7)
+    send_message(user_id, text_dic["cancel"])
 
 
 
@@ -113,34 +157,34 @@ def initializeUser(user_id, message_payload, name):
                             "meta_data": {}
                         }
                 })
-                text_13 = "Congrats you have been successfully registered!"
-                bot.send_message(user_id, text_13, reply_markup=types.ReplyKeyboardRemove())
-                text_2 = "Use /like +65 XXXX XXXX to add the contact of your person of interest."
-                send_message(user_id, text_2)
+                print("should be registered: ",text_response("registered"))
+                bot.send_message(user_id, text_response("registered"), reply_markup=types.ReplyKeyboardRemove())
+                print("should be ask_like: ",text_response("registered"))
+                send_message(user_id, text_response("ask_like"))
             else:
                 collection.update_one({"_id": phone_number}, {"$set": {"user_data.registered": True}})   
                 collection.update_one({"_id": phone_number}, {"$set": {"telegram_user_id": user_id}})   
-                text_13 = "Congrats you have been successfully registered!"
-                bot.send_message(user_id, text_13, reply_markup=types.ReplyKeyboardRemove())
+                print("should be registered: ",text_response("registered"))
+                bot.send_message(user_id, text_response("registered"), reply_markup=types.ReplyKeyboardRemove())
                 number_of_likes = len(next(collection.find({'_id': phone_number}, {"app_data": 1}))['app_data']['likes'])
                 text_11 = "You have already received "+str(number_of_likes)+" likes from secret admirers!"
                 send_message(user_id, text_11)
-                text_2 = "Use /like +65 XXXX XXXX to add the contact of your person of interest."
-                send_message(user_id, text_2)
+                print("should be ask_like: ",text_response("registered"))
+                send_message(user_id, text_response("ask_like"))
         else:
             text_1 = "Hi " + name + ", please send only YOUR number!"
             introductory_message = text_1
             keyboard = types.ReplyKeyboardMarkup (row_width = 1, resize_keyboard = True) 
             button_phone = types.KeyboardButton(text = 'Press here!', request_contact = True)
             keyboard.add(button_phone) 
-            bot.send_message(user_id, introductory_message, reply_markup = keyboard)
+            bot.send_message(user_id, text_response("wrong_number",{"name":name}) , reply_markup = keyboard)
     else:
-        text_1 = "Hi " + name + ", please register your number!"
-        introductory_message = text_1
+        print("should be welcome: ",text_response("welcome",{"name":name}))
+
         keyboard = types.ReplyKeyboardMarkup (row_width = 1, resize_keyboard = True)
         button_phone = types.KeyboardButton(text = 'Press here!', request_contact = True)
         keyboard.add(button_phone) 
-        bot.send_message(user_id, introductory_message, reply_markup = keyboard)
+        bot.send_message(user_id, text_response("welcome",{"name":name}), reply_markup = keyboard)
 
 
 
@@ -153,7 +197,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
             return None
         else:
             if len(str(message_payload['text'])) > 16:
-                send_message(user_id, 'Please keep the name short and sweet :) (aka less than 16 characters).')
+                send_message(user_id, text_response("max_char"))
                 return None
         meta_data = user_id_state["chat_state"]["meta_data"]
         meta_data.append(message_payload['text'])
@@ -354,29 +398,11 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                 text_9 = "You have not liked anyone yet. Use /like to send a contact or username"
                 send_message(user_id, text_9)
                 return '.'
-            text_15 = ""
-            likes_state = user_id_state["app_data"]['likes']
-            liked = []
-            mutual_liked = []
-            for like in likes_state:
-                if like['liked_state'] == 0: # Mutual like
-                    mutual_liked.append(like['nick_name'])
-                elif like['liked_state'] == 2: # Simple like
-                    liked.append(like['nick_name'])
-            if len(liked) != 0:
-                text_15 = "You have liked:\n"
-                index = 1
-                for names in liked:
-                    text_15 = text_15 + str(index) + '. ' + names + '\n'
-                    index += 1
-                text_15 = text_15 + "\n\n\n"
-            if len(mutual_liked) != 0:
-                text_15 = "Mutual likes:\n"
-                index = 1
-                for names in mutual_liked:
-                    text_15 = text_15 + str(index) + '. ' + names + '\n'
-                    index += 1
-            send_message(user_id, text_15)
+            
+            
+            
+
+            send_message(user_id, text_response("display_like",{"likes_state":user_id_state["app_data"]['likes']}))
         elif '/remove' in text_received:
             likes_state = user_id_state["app_data"]['likes']
             liked = []
