@@ -356,7 +356,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                 bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
                 resetState(user_id, 2, 1, {})
 
-def add_like_number(user_id, phone_number, message_payload, name, user_id_state,text_received):
+def add_like_number(user_id,user_id_state,text_received):
     if LikesLeft(user_id) == False: # TODO: Likes left checker
         send_message(user_id, text_response("no_more_likes") )
         return None
@@ -388,12 +388,46 @@ def add_like_number(user_id, phone_number, message_payload, name, user_id_state,
         send_message(user_id, text_response("enter_nick")) 
         resetState(user_id, 1, 1, {"phone_number":final_number})
 
+def remove_setup(user_id_state,user_id):
+    likes_state = user_id_state["app_data"]['likes']
+    liked = []
+    for like in likes_state:
+        if like['liked_state'] == 0 or like['liked_state'] == 2:
+            liked.append(like['nick_name'])
+    if len(liked) == 0:
+        send_message(user_id, text_response("no_likes"))
+        cancel_handler(user_id)
+        return '.'
+    keyboard = types.InlineKeyboardMarkup()
+    duo_liked = []
+    if len(liked) == 1:
+        keyboard.add(types.InlineKeyboardButton(liked[0], callback_data=liked[0]))
+    elif len(liked)%2 == 0:
+        index = 0
+        while index != len(liked):
+            duo_liked.append([types.InlineKeyboardButton(liked[index], callback_data=liked[index]), types.InlineKeyboardButton(liked[index+1], callback_data=liked[index+1])])
+            index += 2
+    else:
+        duo_liked.append([types.InlineKeyboardButton(liked[0], callback_data=liked[0])])
+        del liked[0]
+        index = 0
+        while index != len(liked):
+            duo_liked.append([types.InlineKeyboardButton(liked[index], callback_data=liked[index]), types.InlineKeyboardButton(liked[index+1], callback_data=liked[index+1])])
+            index += 2
+    for i in duo_liked:
+        if len(i) == 2:
+            keyboard.row(i[0], i[1])
+        else:
+            keyboard.row(i[0])
+    bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
+    resetState(user_id, 2, 1, {})
+
 def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
     global bot
     if 'text' in message_payload:
         text_received = message_payload['text']
         if '/like' in text_received:
-            add_like_number(user_id, phone_number, message_payload, name, user_id_state,text_received)     
+            add_like_number(user_id,user_id_state,text_received)     
         elif '/view' in text_received:
             cancel_handler(user_id)
             if len(user_id_state["app_data"]['likes']) == 0:
@@ -401,38 +435,7 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                 return '.'
             send_message(user_id, text_response("display_like",{"likes_state":user_id_state["app_data"]['likes']}))
         elif '/remove' in text_received:
-            likes_state = user_id_state["app_data"]['likes']
-            liked = []
-            for like in likes_state:
-                if like['liked_state'] == 0 or like['liked_state'] == 2:
-                    liked.append(like['nick_name'])
-            if len(liked) == 0:
-                send_message(user_id, text_response("no_likes"))
-                cancel_handler(user_id)
-                return '.'
-            keyboard = types.InlineKeyboardMarkup()
-            duo_liked = []
-            if len(liked) == 1:
-                keyboard.add(types.InlineKeyboardButton(liked[0], callback_data=liked[0]))
-            elif len(liked)%2 == 0:
-                index = 0
-                while index != len(liked):
-                    duo_liked.append([types.InlineKeyboardButton(liked[index], callback_data=liked[index]), types.InlineKeyboardButton(liked[index+1], callback_data=liked[index+1])])
-                    index += 2
-            else:
-                duo_liked.append([types.InlineKeyboardButton(liked[0], callback_data=liked[0])])
-                del liked[0]
-                index = 0
-                while index != len(liked):
-                    duo_liked.append([types.InlineKeyboardButton(liked[index], callback_data=liked[index]), types.InlineKeyboardButton(liked[index+1], callback_data=liked[index+1])])
-                    index += 2
-            for i in duo_liked:
-                if len(i) == 2:
-                    keyboard.row(i[0], i[1])
-                else:
-                    keyboard.row(i[0])
-            bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
-            resetState(user_id, 2, 1, {})
+            remove_setup(user_id_state,user_id)
         elif '/privacy' in text_received:#https://core.telegram.org/bots/api#formatting-options need to do this 
             privacy = "The only identifiable information we have on you is your **phone number** 📞\nThe data is stored with military grade encryption and no one can access it."
             send_message(user_id, privacy)
