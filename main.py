@@ -213,6 +213,22 @@ def add_like_nickname(user_id, message_payload, name, user_id_state):
     keyboard.add(button_ReEnter)
     bot.send_message(user_id, text_response("like_confirmation",{"phone":str(meta_data["phone_number"]),"nickname":meta_data["nickname"]}), reply_markup=keyboard)
 
+def add_mutual_like(user_id,likes_states, user_id_state,to_add_nickname,to_add_phone_number):
+    likes_states[index]['nick_name'] = to_add_nickname
+    likes_states[index]['liked_state'] = 0
+    liked_person_liked_state = next(collection.find({"_id": to_add_phone_number}))['app_data']['likes']
+    index = 0
+    for like in liked_person_liked_state: 
+        if like['phone_number'] == user_id_state['_id']:
+            break 
+        index += 1
+    liked_person_liked_state[index]['liked_state'] = 0
+    collection.update_one({'telegram_user_id': {'$eq': user_id}}, {"$set": {"app_data.likes": likes_states}})
+    collection.update_one({'_id': to_add_phone_number}, {"$set": {"app_data.likes": liked_person_liked_state}})
+    send_message(user_id, text_response("nick_like",{"nickname":to_add_nickname}))
+    liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))
+    send_message(liked_person_userid_state['telegram_user_id'], text_response("nick_like",{"nickname":liked_person_liked_state[index]['nick_name']}))
+    cancel_handler(user_id)
 
 def addHandler(user_id, message_payload, name, user_id_state):
     global collection, bot
@@ -243,21 +259,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
                     break
                 index += 1
             if too_add_number_in_likes_states == True: # Mutual like
-                likes_states[index]['nick_name'] = to_add_nickname
-                likes_states[index]['liked_state'] = 0
-                liked_person_liked_state = next(collection.find({"_id": to_add_phone_number}))['app_data']['likes']
-                index = 0
-                for like in liked_person_liked_state: 
-                    if like['phone_number'] == user_id_state['_id']:
-                        break 
-                    index += 1
-                liked_person_liked_state[index]['liked_state'] = 0
-                collection.update_one({'telegram_user_id': {'$eq': user_id}}, {"$set": {"app_data.likes": likes_states}})
-                collection.update_one({'_id': to_add_phone_number}, {"$set": {"app_data.likes": liked_person_liked_state}})
-                send_message(user_id, text_response("nick_like",{"nickname":to_add_nickname}))
-                liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))
-                send_message(liked_person_userid_state['telegram_user_id'], text_response("nick_like",{"nickname":liked_person_liked_state[index]['nick_name']}))
-                cancel_handler(user_id)
+                add_mutual_like(user_id,likes_states, user_id_state,to_add_nickname,to_add_phone_number)
             else: # First time liking
                 likes_states.append({"phone_number": to_add_phone_number, "liked_state": 2, "nick_name": to_add_nickname})
                 registered_already = register_number(to_add_phone_number) # If number hasn't been registered yet, it will return False
