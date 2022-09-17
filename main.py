@@ -49,9 +49,10 @@ def send_message(user_id, message):
     global bot, collection
     bot.send_message(user_id, message)
 
-def delete_message(message_id):
+def delete_message(message_payload):
+    print("delete has been called")
     global bot, collection
-    bot.delete_message(9083749834793287, message_id) #this has to have the chat id of the bot itself which I don't have currently so please change the userid of the bot
+    bot.delete_message(message_payload["from"]["id"], int(message_payload["message"]["message_id"])) #this has to have the chat id of the bot itself which I don't have currently so please change the userid of the bot
 
 
 def extract_liked_number(text_received):
@@ -168,10 +169,9 @@ def addHandler(user_id, message_payload, name, user_id_state):
         if 'message' not in message_payload:
             send_message(user_id, "Please press either of the buttons on the top or press /cancel to cancel current operation.")
         else:
-            bot.edit_message_reply_markup(user_id,update.callback_query, reply_markup=None)
             # bot.send_message(user_id, "ok", reply_markup=None)
             button_of_choice = message_payload['data']
-            print(button_of_choice)
+            delete_message(message_payload)
             if button_of_choice == 'Re-enter':
                 send_message(user_id, "Kindly re-enter the person you like.")
                 resetState(user_id, 0, 0, [])
@@ -233,6 +233,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
         if 'message' not in message_payload:
             send_message(user_id, "Please press either of the buttons on the top or press /cancel to cancel current operation.")
         else:
+            delete_message(message_payload)
             button_of_choice = message_payload['data']
             text_10 = button_of_choice + " was removed from your list of likes."
             send_message(user_id, text_10)
@@ -270,9 +271,10 @@ def removeHandler(user_id, message_payload, name, user_id_state):
             send_message(user_id, "Please press either of the buttons on the top or press /cancel to cancel current operation.")
         else:
             button_of_choice = message_payload['data']
+            delete_message(message_payload)
+
             if button_of_choice == 'No':
                 send_message(user_id, 'Alright! Use /like to like someone else')
-                delete_message(message_payload["message_id"])
                 resetState(user_id, 0, 0, [])
             elif button_of_choice == 'Yes':
                 likes_state = user_id_state["app_data"]['likes']
@@ -283,6 +285,8 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                 if len(liked) == 0:
                     text_9 = "You have not liked anyone yet. Use /like to send a contact or username"
                     resetState(user_id, 0, 0, [])
+                    delete_message(message_payload)
+                    
                     send_message(user_id, text_9)
                     return '.'
                 keyboard = types.InlineKeyboardMarkup()
