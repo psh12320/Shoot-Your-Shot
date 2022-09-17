@@ -230,6 +230,23 @@ def add_mutual_like(user_id,likes_states, user_id_state,to_add_nickname,to_add_p
     send_message(liked_person_userid_state['telegram_user_id'], text_response("nick_like",{"nickname":liked_person_liked_state[index]['nick_name']}))
     cancel_handler(user_id)
 
+def add_first_time_like(user_id,user_id_state,to_add_nickname,to_add_phone_number,likes_states):
+    likes_states.append({"phone_number": to_add_phone_number, "liked_state": 2, "nick_name": to_add_nickname})
+    registered_already = register_number(to_add_phone_number) # If number hasn't been registered yet, it will return False
+    collection.update_one({'telegram_user_id': {'$eq': user_id}}, {"$set": {"app_data.likes": likes_states}})
+    if registered_already == False: # Hasn't been registered yet
+        collection.update_one({'_id': to_add_phone_number}, {"$set": {"app_data.likes": [{"phone_number": user_id_state["_id"], "liked_state": 1, "nick_name": None}]}})
+    else: # Registered already
+        liked_person_liked_state = next(collection.find({"_id": to_add_phone_number}))['app_data']['likes']
+        liked_person_liked_state.append({"phone_number": user_id_state["_id"], "liked_state": 1, "nick_name": None})
+        collection.update_one({'_id': to_add_phone_number}, {"$set": {"app_data.likes": liked_person_liked_state}})
+    send_message(user_id, text_response("assure_secret"))
+    liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))  # TODO: INEFFICIENY 
+    if liked_person_userid_state['user_data']['registered']:
+        send_message(liked_person_userid_state['telegram_user_id'], text_response("someone_liked"))
+    cancel_handler(user_id) 
+    return '.'
+
 def addHandler(user_id, message_payload, name, user_id_state):
     global collection, bot
     if user_id_state['chat_state']['convo_state'] == 1:
@@ -245,7 +262,6 @@ def addHandler(user_id, message_payload, name, user_id_state):
                 send_message(user_id, text_response("re_enter_like"))
                 resetState(user_id, 1, 1, user_id_state["chat_state"]["meta_data"])
                 return '.'
-            
             meta_data = user_id_state['chat_state']['meta_data']
             likes_states = user_id_state['app_data']['likes']
             # Either it's about to be a mutual like or a first time like
@@ -261,21 +277,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
             if too_add_number_in_likes_states == True: # Mutual like
                 add_mutual_like(user_id,likes_states, user_id_state,to_add_nickname,to_add_phone_number)
             else: # First time liking
-                likes_states.append({"phone_number": to_add_phone_number, "liked_state": 2, "nick_name": to_add_nickname})
-                registered_already = register_number(to_add_phone_number) # If number hasn't been registered yet, it will return False
-                collection.update_one({'telegram_user_id': {'$eq': user_id}}, {"$set": {"app_data.likes": likes_states}})
-                if registered_already == False: # Hasn't been registered yet
-                    collection.update_one({'_id': to_add_phone_number}, {"$set": {"app_data.likes": [{"phone_number": user_id_state["_id"], "liked_state": 1, "nick_name": None}]}})
-                else: # Registered already
-                    liked_person_liked_state = next(collection.find({"_id": to_add_phone_number}))['app_data']['likes']
-                    liked_person_liked_state.append({"phone_number": user_id_state["_id"], "liked_state": 1, "nick_name": None})
-                    collection.update_one({'_id': to_add_phone_number}, {"$set": {"app_data.likes": liked_person_liked_state}})
-                send_message(user_id, text_response("assure_secret"))
-                liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))  # TODO: INEFFICIENY 
-                if liked_person_userid_state['user_data']['registered']:
-                    send_message(liked_person_userid_state['telegram_user_id'], text_response("someone_liked"))
-                cancel_handler(user_id) 
-                return '.'
+                add_first_time_like(user_id,user_id_state,to_add_nickname,to_add_phone_number,likes_states)
                 
 def removeHandler(user_id, message_payload, name, user_id_state):
     global collection, bot
