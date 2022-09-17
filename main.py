@@ -100,14 +100,18 @@ def register_number(phone_number):
                             "first_name": None,
                             "time": time.time(),
                             "registered": False,
-                            "meta_data": {}
+                            "meta_data": {},
+                            "no_likes":10
                         }
                 })
         return False
     return True
 
-def LikesLeft(user_id):
-    return True
+def change_likes(user_id,user_id_state,likes):
+    global collection
+    user_id_state["user_data"]["no_likes"] -= likes 
+    collection.update_one({'telegram_user_id': {'$eq': user_id}}, {"$inc": {"user_data.no_likes": likes}})
+    return user_id_state
 
 def send_message(user_id, message):
     global bot, collection
@@ -165,7 +169,8 @@ def initializeUser(user_id, message_payload, name):
                             "first_name": name,
                             "time": time.time(), 
                             "registered": True,
-                            "meta_data": {}
+                            "meta_data": {},
+                            "no_likes":10
                         }
                 })
                 print("should be registered: ",text_response("registered"))
@@ -357,7 +362,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                 resetState(user_id, 2, 1, {})
 
 def add_like_number(user_id,user_id_state,text_received):
-    if LikesLeft(user_id) == False: # TODO: Likes left checker
+    if user_id_state["user_data"]["no_likes"] <= 0: # TODO: Likes left checker
         send_message(user_id, text_response("no_more_likes") )
         return None
     number = text_received
