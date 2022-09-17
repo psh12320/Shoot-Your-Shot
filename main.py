@@ -33,6 +33,10 @@ text_dic = {
     "re_enter_like":"Kindly re-enter the person you like.",
     "Alright":"Alright! Use /like to like someone else",
     "select_remove_like":"Select the name of person you wish to remove from likes: ",
+    "no_more_likes": "Sorry, you have no more likes left.",
+    "no_area_code": "Please include area code in the phone number",
+    "proper_format": "Please re-enter the number of the person you like in the proper format!\n Use '/like +65 XXXX XXXX' to add the contact of your person of interest.",
+    "liked_already": "You have already previously liked this person!",
     
 }
 
@@ -356,14 +360,14 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
         text_received = message_payload['text']
         if '/like' in text_received:
             if LikesLeft(user_id) == False: # TODO: Likes left checker
-                send_message(user_id, "Sorry, you have no more likes left.")
+                send_message(user_id, text_response("no_more_likes") )
                 return None
             number = text_received
             if extract_liked_number(number) == 0: # No areacode 
-                send_message(user_id, "Please include area code in the phone number")
+                send_message(user_id, text_response("no_area_code") )
                 return None
             if extract_liked_number(number) == 1: # Format is incorrect for the number entered
-                send_message(user_id, "Please re-enter the number of the person you like in the proper format!\n Use '/like +65 XXXX XXXX' to add the contact of your person of interest.")
+                send_message(user_id,text_response("proper_format") )
                 return None
             number = extract_liked_number(number)
             final_number = f"+{str(number.country_code)} {str(number.national_number)}"
@@ -378,7 +382,7 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
             if final_number_in_likes_states == True: # Not the first relation between these 2 accounts
                 relation_state = likes_states[index]
                 if relation_state['liked_state'] == 0 or relation_state['liked_state'] == 2:
-                    send_message(user_id, "You have already previously liked this person!")
+                    send_message(user_id, text_response("liked_already") )
                     return None
                 send_message(user_id, text_response("enter_nick")) 
                 resetState(user_id, 1, 1, [final_number])
