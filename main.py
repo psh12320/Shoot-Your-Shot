@@ -1,4 +1,3 @@
-from turtle import update
 from telebot import *
 from flask import *
 from pymongo import *
