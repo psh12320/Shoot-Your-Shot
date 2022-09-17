@@ -4,7 +4,7 @@ from pymongo import *
 import json
 import time
 import phonenumbers
-global bot, collection
+global bot, collection,text_dic
 
 
 app = Flask(__name__)
@@ -41,6 +41,7 @@ text_dic = {
 }
 
 def text_response(i,params = None): #welcome has name inside so params = {"name": name}
+    global text_dic
     if params == None:
         return text_dic[i]
     else:
@@ -193,8 +194,6 @@ def initializeUser(user_id, message_payload, name):
         keyboard.add(button_phone) 
         bot.send_message(user_id, text_response("welcome",{"name":name}), reply_markup = keyboard)
 
-
-
 def addHandler(user_id, message_payload, name, user_id_state):
     global collection, bot
     if user_id_state['chat_state']['convo_state'] == 1:
@@ -272,8 +271,6 @@ def addHandler(user_id, message_payload, name, user_id_state):
                 resetState(user_id, 0, 0, []) 
                 return '.'
                 
-
-
 def removeHandler(user_id, message_payload, name, user_id_state):
     global collection, bot
     if user_id_state['chat_state']['convo_state'] == 1:
@@ -318,7 +315,6 @@ def removeHandler(user_id, message_payload, name, user_id_state):
         else:
             button_of_choice = message_payload['data']
             delete_message(message_payload)
-
             if button_of_choice == 'No':
                 send_message(user_id, text_response("Alright"))
                 resetState(user_id, 0, 0, [])
@@ -351,8 +347,6 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                             keyboard.row(i[0])
                 bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
                 resetState(user_id, 2, 1, [])
-
-
 
 def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
     global bot
@@ -394,10 +388,6 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
             if len(user_id_state["app_data"]['likes']) == 0:
                 send_message(user_id, text_response("no_likes"))
                 return '.'
-            
-            
-            
-
             send_message(user_id, text_response("display_like",{"likes_state":user_id_state["app_data"]['likes']}))
         elif '/remove' in text_received:
             likes_state = user_id_state["app_data"]['likes']
@@ -432,13 +422,12 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                     keyboard.row(i[0])
             bot.send_message(user_id, text_response("select_remove_like"), reply_markup=keyboard)
             resetState(user_id, 2, 1, [])
-        elif '/privacy' in text_received:
+        elif '/privacy' in text_received:#https://core.telegram.org/bots/api#formatting-options need to do this 
             privacy = "The only identifiable information we have on you is your **phone number** 📞\nThe data is stored with military grade encryption and no one can access it."
             send_message(user_id, privacy)
         elif '/about' in text_received:
             about = "💓 This bot helps you anonymously confess to the person you like!\n\n😌 We wish to help users who are shy to 'shoot' their interest without any fear of exposure or rejection.\n\n🤐 The bot keeps the confession a secret until your person of interest shoots you as well. We will then notify both persons of the match :)"
             send_message(user_id, about)
-
 
 def MessageHandler(user_id, message_payload, name, user_id_state):
     global bot, collection
@@ -462,8 +451,6 @@ def MessageHandler(user_id, message_payload, name, user_id_state):
             removeHandler(user_id, message_payload, name, user_id_state)
     return '.'
 
-
-
 @app.route("/", methods=['POST'])
 def index():
     input_tele = json.loads(request.data.decode())
@@ -485,8 +472,6 @@ def index():
         user_id_state = collection.find({'telegram_user_id': {'$eq': user_id}})
         MessageHandler(user_id, message_payload, name, user_id_state)
         return '.'
-
-
 
 if __name__=="__main__":
     bot = TeleBot("5472045640:AAHahE2Pp5iheWd0H2HNsLbKDk2a5YRViKE") 
