@@ -149,6 +149,7 @@ def initializeUser(user_id, message_payload, name):
             phone_number = message_payload['contact']['phone_number']
             if "+" not in phone_number:
                 phone_number = "+" + str(phone_number)
+            phone_number = f"+{str(extract_liked_number(phone_number).country_code)} {str(extract_liked_number(phone_number).national_number)}" 
             user_id_state = collection.find({'_id': phone_number})
             if len(list(user_id_state)) == 0:
                 collection.insert_one({
