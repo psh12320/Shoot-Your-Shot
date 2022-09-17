@@ -13,7 +13,7 @@ text_dic = {
     "welcome_1":"Hi ",
     "welcome_2":", please register your number!",
     "wrong_number_1":"Hi ",
-    "wrong_number_2":", please register your number!",
+    "wrong_number_2":", please send only YOUR number!",
     "ask_like":"Use /like +65 XXXX XXXX to add the contact of your person of interest.",
     "assure_secret":"We’ll keep it a secret 🤫…and let the both of you know when you have liked each other!",
     "nick_like":" likes you too! ❤️",
@@ -26,6 +26,11 @@ text_dic = {
     "registered":"Congrats you have been successfully registered!",
     "enter_nick":"Enter the nickname of the person you like!",
     "max_char":"Please keep the name short and sweet, less than 16 characters.",
+    "only_nick":'Please send the text of the nickname only!',
+    "like_confirmation_1":"Kindly press the button below to confirm the details of your like:\nPhone Number: ",
+    "like_confirmation_2":"\nNickname: ",
+    "button_or_cancel":"Please press either of the buttons on the top or press /cancel to cancel current operation.",
+    
 }
 
 def text_response(i,params = None): #welcome has name inside so params = {"name": name}
@@ -40,7 +45,7 @@ def text_response(i,params = None): #welcome has name inside so params = {"name"
             return f"{params['nickname']}{text_dic['nick_like']}"
         if i=="removed_like":
             return f"{params['button']}{text_dic['removed_like']}"
-        if i=="received_like":
+        if i=="received_like":#{"like_count": likecount}
             return f"{text_dic['received_like_1']}{params['like_count']}{text_dic['received_like_2']}"
         if i=="display_like":
             string_out = ""
@@ -61,7 +66,10 @@ def text_response(i,params = None): #welcome has name inside so params = {"name"
                 string_out += "Mutual likes:\n"
                 for index,name in enumerate(mutual_liked):
                     string_out += f"{index+1}. {name}\n"
+            
             return string_out
+        if i=="like_confirmation":#params = {"phone":phone,"nickname":name}
+            return f"{text_dic['like_confirmation_1']}{params['phone']}{text_dic['like_confirmation_2']}{params['nickname']}"
 
 def register_number(phone_number):
     global collection
@@ -117,14 +125,9 @@ def cancel_handler(user_id):
     resetState(user_id, 0, 0, [])
     send_message(user_id, text_dic["cancel"])
 
-
-
-
 def resetState(user_id, fn_id, convo_state, meta_data):
     global collection
     collection.update_one({'telegram_user_id': {'$eq': user_id}}, {"$set": {"chat_state.fn_id": fn_id, "chat_state.convo_state": convo_state, 'chat_state.meta_data': meta_data}})
-
-
 
 def initializeUser(user_id, message_payload, name):
     global bot, collection
@@ -167,13 +170,10 @@ def initializeUser(user_id, message_payload, name):
                 print("should be registered: ",text_response("registered"))
                 bot.send_message(user_id, text_response("registered"), reply_markup=types.ReplyKeyboardRemove())
                 number_of_likes = len(next(collection.find({'_id': phone_number}, {"app_data": 1}))['app_data']['likes'])
-                text_11 = "You have already received "+str(number_of_likes)+" likes from secret admirers!"
-                send_message(user_id, text_11)
+                send_message(user_id, text_response("received_like",{"like_count": number_of_likes}))
                 print("should be ask_like: ",text_response("registered"))
                 send_message(user_id, text_response("ask_like"))
         else:
-            text_1 = "Hi " + name + ", please send only YOUR number!"
-            introductory_message = text_1
             keyboard = types.ReplyKeyboardMarkup (row_width = 1, resize_keyboard = True) 
             button_phone = types.KeyboardButton(text = 'Press here!', request_contact = True)
             keyboard.add(button_phone) 
@@ -193,7 +193,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
     if user_id_state['chat_state']['convo_state'] == 1:
         #message_payload = message_payload['message']
         if 'text' not in message_payload:
-            send_message('Please sent the text of the nickname only!')
+            send_message(user_id,text_response("only_nick"))
             return None
         else:
             if len(str(message_payload['text'])) > 16:
@@ -202,16 +202,16 @@ def addHandler(user_id, message_payload, name, user_id_state):
         meta_data = user_id_state["chat_state"]["meta_data"]
         meta_data.append(message_payload['text'])
         resetState(user_id, 1, 2, meta_data)  
-        confirmation = "Kindly press the button below to confirm the details of your like:\nPhone Number: "+str(meta_data[0])+"\nNickname: "+meta_data[1]
+        # confirmation = "Kindly press the button below to confirm the details of your like:\nPhone Number: "+str(meta_data[0])+"\nNickname: "+meta_data[1]
         button_Confirm = types.InlineKeyboardButton('Confirm!', callback_data='Confirm')
         button_ReEnter = types.InlineKeyboardButton('Re-enter!', callback_data='Re-enter')
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(button_Confirm)
         keyboard.add(button_ReEnter)
-        bot.send_message(user_id, confirmation, reply_markup=keyboard)
+        bot.send_message(user_id, text_response("like_confirmation",{"phone":str(meta_data[0]),"nickname":meta_data[1]}), reply_markup=keyboard)
     if user_id_state['chat_state']['convo_state'] == 2:
         if 'message' not in message_payload:
-            send_message(user_id, "Please press either of the buttons on the top or press /cancel to cancel current operation.")
+            send_message(user_id, text_response("button_or_cancel"))
         else:
             # bot.send_message(user_id, "ok", reply_markup=None)
             button_of_choice = message_payload['data']
@@ -244,11 +244,9 @@ def addHandler(user_id, message_payload, name, user_id_state):
                 liked_person_liked_state[index]['liked_state'] = 0
                 collection.update_one({'telegram_user_id': {'$eq': user_id}}, {"$set": {"app_data.likes": likes_states}})
                 collection.update_one({'_id': to_add_phone_number}, {"$set": {"app_data.likes": liked_person_liked_state}})
-                text_8 = to_add_nickname + " likes you too! ❤️"
-                send_message(user_id, text_8)
+                send_message(user_id, text_response("nick_like",{"nickname":to_add_nickname}))
                 liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))
-                text_8 = liked_person_liked_state[index]['nick_name'] + ' likes you too! ❤️'
-                send_message(liked_person_userid_state['telegram_user_id'], text_8)
+                send_message(liked_person_userid_state['telegram_user_id'], text_response("nick_like",{"nickname":liked_person_liked_state[index]['nick_name']}))
                 resetState(user_id, 0, 0, [])
             else: # First time liking
                 likes_states.append({"phone_number": to_add_phone_number, "liked_state": 2, "nick_name": to_add_nickname})
@@ -260,12 +258,10 @@ def addHandler(user_id, message_payload, name, user_id_state):
                     liked_person_liked_state = next(collection.find({"_id": to_add_phone_number}))['app_data']['likes']
                     liked_person_liked_state.append({"phone_number": user_id_state["_id"], "liked_state": 1, "nick_name": None})
                     collection.update_one({'_id': to_add_phone_number}, {"$set": {"app_data.likes": liked_person_liked_state}})
-                text_3 = "We’ll keep it a secret 🤫…and let the both of you know when you have liked each other!"
-                send_message(user_id, text_3)
+                send_message(user_id, text_response("assure_secret"))
                 liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))  # TODO: INEFFICIENY 
                 if liked_person_userid_state['user_data']['registered']:
-                    text_12 = "Someone likes you! Use /like to find out who!"
-                    send_message(liked_person_userid_state['telegram_user_id'], text_12)
+                    send_message(liked_person_userid_state['telegram_user_id'], text_response("someone_liked"))
                 resetState(user_id, 0, 0, []) 
                 return '.'
                 
@@ -279,8 +275,7 @@ def removeHandler(user_id, message_payload, name, user_id_state):
         else:
             delete_message(message_payload)
             button_of_choice = message_payload['data']
-            text_10 = button_of_choice + " was removed from your list of likes."
-            send_message(user_id, text_10)
+            send_message(user_id, text_response("removed_like",{"button":button_of_choice}))
             likes_state = user_id_state['app_data']['likes']
             index = 0
             for like in likes_state:
@@ -327,11 +322,10 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                     if like['liked_state'] == 0 or like['liked_state'] == 2:
                         liked.append(like['nick_name'])
                 if len(liked) == 0:
-                    text_9 = "You have not liked anyone yet. Use /like to send a contact or username"
                     resetState(user_id, 0, 0, [])
                     delete_message(message_payload)
                     
-                    send_message(user_id, text_9)
+                    send_message(user_id, text_response("no_likes"))
                     return '.'
                 keyboard = types.InlineKeyboardMarkup()
                 duo_liked = []
@@ -385,18 +379,15 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                 if relation_state['liked_state'] == 0 or relation_state['liked_state'] == 2:
                     send_message(user_id, "You have already previously liked this person!")
                     return None
-                text_16 = "Enter the nickname of the person you like!"
-                send_message(user_id, text_16) 
+                send_message(user_id, text_response("enter_nick")) 
                 resetState(user_id, 1, 1, [final_number])
             else: # First relation between these 2 account 
-                text_16 = "Enter the nickname of the person you like!"
-                send_message(user_id, text_16) 
+                send_message(user_id, text_response("enter_nick")) 
                 resetState(user_id, 1, 1, [final_number])
         elif '/view' in text_received:
             resetState(user_id, 0, 0, [])
             if len(user_id_state["app_data"]['likes']) == 0:
-                text_9 = "You have not liked anyone yet. Use /like to send a contact or username"
-                send_message(user_id, text_9)
+                send_message(user_id, text_response("no_likes"))
                 return '.'
             
             
@@ -410,8 +401,7 @@ def commandHandler(user_id, phone_number, message_payload, name, user_id_state):
                 if like['liked_state'] == 0 or like['liked_state'] == 2:
                     liked.append(like['nick_name'])
             if len(liked) == 0:
-                text_9 = "You have not liked anyone yet. Use /like to send a contact or username"
-                send_message(user_id, text_9)
+                send_message(user_id, text_response("no_likes"))
                 resetState(user_id, 0, 0, [])
                 return '.'
             keyboard = types.InlineKeyboardMarkup()
