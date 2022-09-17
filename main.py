@@ -233,6 +233,7 @@ def add_mutual_like(user_id,likes_states, user_id_state,to_add_nickname,to_add_p
     send_message(user_id, text_response("nick_like",{"nickname":to_add_nickname}))
     liked_person_userid_state = next(collection.find({"_id": to_add_phone_number}))
     send_message(liked_person_userid_state['telegram_user_id'], text_response("nick_like",{"nickname":liked_person_liked_state[index]['nick_name']}))
+    change_likes(user_id,user_id_state,-1)
     cancel_handler(user_id)
 
 def add_first_time_like(user_id,user_id_state,to_add_nickname,to_add_phone_number,likes_states):
@@ -250,6 +251,7 @@ def add_first_time_like(user_id,user_id_state,to_add_nickname,to_add_phone_numbe
     if liked_person_userid_state['user_data']['registered']:
         send_message(liked_person_userid_state['telegram_user_id'], text_response("someone_liked"))
     cancel_handler(user_id) 
+    change_likes(user_id,user_id_state,-1)
     return '.'
 
 def addHandler(user_id, message_payload, name, user_id_state):
