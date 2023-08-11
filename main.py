@@ -86,8 +86,11 @@ def addHandler(user_id, message_payload, name, user_id_state):
                             if user_id == heartbreaks['user_id_of_crush']:
                                 lyk_message = crush_name + " likes you too ❤️"
                                 send_message(user_id, lyk_message)
+                                send_message(user_id, "We would like to suggest the following dating activities for the both of you! \n 1. 2 tickets to Taylor Swift at $50 \n 2. Discounted gym passes \n")
                                 message_for_crush = name + " likes you too ❤️"
+                                send_message(crush_userid, "We would like to suggest the following dating activities for the both of you! \n 1. 2 tickets to Taylor Swift at $50 \n 2. Discounted gym passes \n")
                                 send_message(crush_userid, message_for_crush)
+                                send_message(crush_userid, "")
                                 no_match = False
                                 
                                 mutual_crushes_lst = collection.find_one({"_id": user_id}, {'app_data.mutual_likes': 1})['app_data']['mutual_likes']
@@ -245,10 +248,10 @@ def index():
 
 if __name__=="__main__":
     bot = TeleBot("5472045640:AAHahE2Pp5iheWd0H2HNsLbKDk2a5YRViKE") 
-    uri = "mongodb+srv://cluster0.cvl9b.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
+    uri = "mongodb+srv://cluster0.mqlx5ut.mongodb.net/?authSource=%24external&authMechanism=MONGODB-X509&retryWrites=true&w=majority"
     client = MongoClient(uri,
                      tls=True,
-                     tlsCertificateKeyFile='private/binance.pem')
+                     tlsCertificateKeyFile='ojas.pem')
     db = client['shootyoushot']
     collection = db['users']
-    app.run(debug=True, host='0.0.0.0', port=5879)
+    app.run(debug=True, host='0.0.0.0', port=5259)
