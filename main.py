@@ -248,7 +248,7 @@ def commandHandler(user_id, message_payload, name, user_id_state):
                 send_message(user_id, remove_message)
             else:
                 resetState(user_id, 2, 2, [])
-                remove_message = '\nWrite the number beside person you want to remove!'
+                remove_message = '\nSelect which person you would like to unlike? (e.g.1)'
                 viewHandler(user_id, message_payload, name, user_id_state)
                 send_message(user_id, remove_message)
 
@@ -348,7 +348,10 @@ def MessageHandler(user_id, message_payload, name, user_id_state):
 @app.route("/", methods=['POST'])
 def index():
     input_tele = json.loads(request.data.decode())
+    print(input_tele)
     if 'message' not in input_tele:
+        if 'my_chat_member' not in input_tele:
+            return '.'
         user_id = input_tele['my_chat_member']['chat']['id']
         resetState(user_id, 0, 0, [])
         return '.'
