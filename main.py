@@ -3,10 +3,29 @@ from flask import *
 from pymongo import *
 import json
 import time
-global bot, collection
+import random
+global bot, collection, animal_list
 
 
 app = Flask(__name__)
+
+animal_list = [
+    "Anonymous Alligator", "Anonymous Ant", "Anonymous Anteater", "Anonymous Armadillo", "Anonymous Baboon", "Anonymous Badger", "Anonymous Barracuda", "Anonymous Bat", "Anonymous Bear", "Anonymous Beaver",
+    "Anonymous Bee", "Anonymous Bison", "Anonymous Blackbird", "Anonymous Boar", "Anonymous Buffalo", "Anonymous Butterfly", "Anonymous Camel", "Anonymous Capybara", "Anonymous Caribou", "Anonymous Cat",
+    "Anonymous Cheetah", "Anonymous Chimpanzee", "Anonymous Cobra", "Anonymous Cockroach", "Anonymous Cougar", "Anonymous Cow", "Anonymous Coyote", "Anonymous Crab", "Anonymous Crocodile", "Anonymous Crow",
+    "Anonymous Deer", "Anonymous Dingo", "Anonymous Dog", "Anonymous Dolphin", "Anonymous Donkey", "Anonymous Dragonfly", "Anonymous Duck", "Anonymous Eagle", "Anonymous Elephant", "Anonymous Falcon", "Anonymous Ferret",
+    "Anonymous Finch", "Anonymous Flamingo", "Anonymous Fox", "Anonymous Frog", "Anonymous Gazelle", "Anonymous Gecko", "Anonymous Giraffe", "Anonymous Gorilla", "Anonymous Grasshopper", "Anonymous Guinea Pig",
+    "Anonymous Hamster", "Anonymous Hawk", "Anonymous Hedgehog", "Anonymous Hippopotamus", "Anonymous Horse", "Anonymous Hyena", "Anonymous Iguana", "Anonymous Impala", "Anonymous Jackal", "Anonymous Jellyfish",
+    "Anonymous Kangaroo", "Anonymous Koala", "Anonymous Komodo Dragon", "Anonymous Lemur", "Anonymous Leopard", "Anonymous Lion", "Anonymous Lizard", "Anonymous Lobster", "Anonymous Lynx", "Anonymous Macaw",
+    "Anonymous Magpie", "Anonymous Mantis", "Anonymous Meerkat", "Anonymous Mole", "Anonymous Monkey", "Anonymous Moose", "Anonymous Mosquito", "Anonymous Mouse", "Anonymous Narwhal", "Anonymous Newt", "Anonymous Octopus",
+    "Anonymous Ostrich", "Anonymous Otter", "Anonymous Owl", "Anonymous Panther", "Anonymous Parrot", "Anonymous Peacock", "Anonymous Pelican", "Anonymous Penguin", "Anonymous Pigeon", "Anonymous Platypus",
+    "Anonymous Porcupine", "Anonymous Puma", "Anonymous Quokka", "Anonymous Rabbit", "Anonymous Raccoon", "Anonymous Ram", "Anonymous Rat", "Anonymous Rhinoceros", "Anonymous Salamander", "Anonymous Scorpion",
+    "Anonymous Seahorse", "Anonymous Shark", "Anonymous Sheep", "Anonymous Skunk", "Anonymous Sloth", "Anonymous Snail", "Anonymous Snake", "Anonymous Spider", "Anonymous Squid", "Anonymous Squirrel", "Anonymous Starfish",
+    "Anonymous Stingray", "Anonymous Stork", "Anonymous Swan", "Anonymous Tapir", "Anonymous Tarantula", "Anonymous Tasmanian Devil", "Anonymous Termite", "Anonymous Tiger", "Anonymous Toad", "Anonymous Tortoise",
+    "Anonymous Toucan", "Anonymous Turkey", "Anonymous Turtle", "Anonymous Vulture", "Anonymous Wallaby", "Anonymous Walrus", "Anonymous Warthog", "Anonymous Wasp", "Anonymous Weasel", "Anonymous Whale", "Anonymous Wolf",
+    "Anonymous Wolverine", "Anonymous Wombat", "Anonymous Woodpecker", "Anonymous Wren", "Anonymous Yak", "Anonymous Zebra"
+]
+
 
 
 def send_message(user_id, message):
@@ -52,6 +71,7 @@ def cancelHandler(user_id):
 
 def addHandler(user_id, message_payload, name, user_id_state):
     global collection
+    global animal_list
     if user_id_state['chat_state']['convo_state'] == 1:
         if 'contact' not in message_payload:
             send_message(user_id, 'Please send a valid phone contact!')
@@ -72,12 +92,14 @@ def addHandler(user_id, message_payload, name, user_id_state):
                     resetState(user_id, 0, 0, [])
                     crush_payload = list(collection.find({"_id": crush_userid}))
                     if len(crush_payload) == 0:
-                        lyk_message = "🤞 We will keep it a secret and let you and "+crush_name+" know whenever they like you back 🤞"
+                        lyk_message = "🤞 We will keep it a secret and let you and "+crush_name+" know whenever they like you back 🤞\nUse /send_message to send them a message ;)"
                         crushes_lst = collection.find_one({"_id": user_id}, {'app_data.crushes': 1})['app_data']['crushes']
-                        crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name})
-                        print(crushes_lst)
-                        collection.update_one({"_id": user_id}, {"$set": {"app_data.crushes": crushes_lst}})
+                        animal = animal_list[random.randint(0, len(animal_list))]
+                        crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name, "animal": animal})
                         send_message(user_id, lyk_message)
+                        collection.update_one({"_id": user_id}, {"$set": {"app_data.crushes": crushes_lst}})
+                        if collection.find_one({"_id": crush_userid}):
+                            send_message(crush_userid, animal+" likes you! Press /send_message to send them a message 😜")
                     else: 
                         crush_payload = crush_payload[0]
                         crushes_of_crush = crush_payload['app_data']['crushes']
@@ -86,9 +108,7 @@ def addHandler(user_id, message_payload, name, user_id_state):
                             if user_id == heartbreaks['user_id_of_crush']:
                                 lyk_message = crush_name + " likes you too ❤️"
                                 send_message(user_id, lyk_message)
-                                send_message(user_id, "We would like to suggest the following dating activities for the both of you! \n 1. 2 tickets to Taylor Swift at $50 \n 2. Discounted gym passes \n")
                                 message_for_crush = name + " likes you too ❤️"
-                                send_message(crush_userid, "We would like to suggest the following dating activities for the both of you! \n 1. 2 tickets to Taylor Swift at $50 \n 2. Discounted gym passes \n")
                                 send_message(crush_userid, message_for_crush)
                                 send_message(crush_userid, "")
                                 no_match = False
@@ -107,11 +127,13 @@ def addHandler(user_id, message_payload, name, user_id_state):
 
 
                         if no_match == True:
-                            lyk_message = "🤞 We will keep it a secret and let you and "+crush_name+" know whenever they like you back 🤞"
+                            lyk_message = "🤞 We will keep it a secret and let you and "+crush_name+" know whenever they like you back 🤞\nUse /send_message to send them a message ;)"
                             crushes_lst = collection.find_one({"_id": user_id}, {'app_data.crushes': 1})['app_data']['crushes']
-                            crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name})
+                            animal = animal_list[random.randint(0, len(animal_list))]
+                            crushes_lst.append({"user_id_of_crush": crush_userid, "time": time.time(), 'first_name': crush_name, "animal": animal})
                             collection.update_one({"_id": user_id}, {"$set": {"app_data.crushes": crushes_lst}})
                             send_message(user_id, lyk_message)
+                            send_message(crush_userid, animal+" likes you! Press /send_message to send them a message 😜")
                         
 
 
@@ -137,6 +159,71 @@ def removeHandler(user_id, message_payload, name, user_id_state):
                 error_message = "Please enter a valid number which corresponds to the like you want to remove"
                 send_message(user_id, error_message)
 
+def send_messageHandler(user_id, message_payload, name, user_id_state):
+    global collection
+    if user_id_state['chat_state']['convo_state'] == 1:
+        error_message = "Please enter a valid number instead (e.g. 2)"
+        if 'text' not in  message_payload:
+            send_message(user_id, error_message)
+        else:
+            if message_payload['text'].isdigit() == False:
+                send_message(user_id, error_message)
+            else:
+                number = int(message_payload['text'])
+                cursor = collection.find(
+                    {"app_data.crushes.user_id_of_crush": user_id},
+                    {"_id": 1, "app_data.crushes.animal": 1}
+                )
+                data_likers = {}
+                for document in cursor:
+                    data_likers[document['_id']] = document['app_data']['crushes'][0]['animal']
+                crushes = user_id_state['app_data']['crushes']
+                view_payload = ""
+                counter = 1
+                liker_ids = []
+                liker_names = []
+                for crush in crushes:
+                    data_likers[crush["user_id_of_crush"]] = crush["first_name"]
+                for idss in data_likers:
+                    liker_ids.append(idss)
+                    liker_names.append(data_likers[idss])
+                    
+                if number > 0 and number <= len(data_likers):
+                    print(liker_names, number -1)
+                    send_message(user_id, "What message would you like to send "+liker_names[number-1]+"?")
+                    resetState(user_id, 3, 2, [liker_ids[number -1]])
+                else:
+                    error_message = "Please enter a valid number which corresponds to the like you want to remove"
+                    send_message(user_id, error_message)
+    elif user_id_state['chat_state']['convo_state'] == 2:
+        error_message = "Please enter a text"
+        if 'text' not in  message_payload:
+            send_message(user_id, error_message)
+        else:
+            text = message_payload['text']
+            idtosend = user_id_state['chat_state']['meta_data'][0]
+            crushes_lst = user_id_state["app_data"]['crushes']    
+            is_in = False  # Check if idtosend is the person who has been liked   
+            for crush in crushes_lst:
+                if crush["user_id_of_crush"] == idtosend:
+                    is_in = True
+                    person_name = crush["animal"]
+                    break
+            if is_in == True:
+                send_message(idtosend, person_name+" sent you a text:\n"+text+"\nUse /send_message to reply to them!")
+                resetState(user_id, 0, 0, [])
+                send_message(user_id, "Your message has been sent!")
+            else:
+                crushes_lst = collection.find_one({"_id": idtosend})["app_data"]["crushes"]
+                for i in crushes_lst:
+                    if i["user_id_of_crush"] == user_id:
+                        send_message(idtosend, i["first_name"]+" sent you a text:\n"+text+"\nUse /send_message to reply to them!")
+                        resetState(user_id, 0, 0, [])
+                        send_message(user_id, "Your message has been sent!")
+                        break
+
+
+            
 
 
 def commandHandler(user_id, message_payload, name, user_id_state):
@@ -161,7 +248,7 @@ def commandHandler(user_id, message_payload, name, user_id_state):
                 send_message(user_id, remove_message)
             else:
                 resetState(user_id, 2, 2, [])
-                remove_message = '\nWrite the correspoding number of the person you want to remove!'
+                remove_message = '\nWrite the number beside person you want to remove!'
                 viewHandler(user_id, message_payload, name, user_id_state)
                 send_message(user_id, remove_message)
 
@@ -182,6 +269,31 @@ def commandHandler(user_id, message_payload, name, user_id_state):
         elif '/privacy' in text_received:
             privacy = "Your or your person of interest's phone number and all personally identifiable data **are not** stored in our database. We only store what's absolutely necessary for the bot to function."
             send_message(user_id, privacy)
+        elif '/send_message' in text_received:
+            user_id_to_find = user_id 
+            cursor = collection.find(
+                {"app_data.crushes.user_id_of_crush": user_id_to_find},
+                {"_id": 1, "app_data.crushes.animal": 1}
+            )
+            data_likers = {}
+            for document in cursor:
+                data_likers[document['_id']] = document['app_data']['crushes'][0]['animal']
+            crushes = user_id_state['app_data']['crushes']
+            view_payload = ""
+            counter = 1
+            for crush in crushes:
+                data_likers[crush["user_id_of_crush"]] = crush["first_name"]
+            print(data_likers)
+            if len(data_likers) == 0:
+                send_message(user_id, "No one has liked you yet neither have you liked anyone yet to send a message to! Use /add to add new likes to send messages to.")
+            else:
+                message = "Choose the option of the person you want to send a message to: (e.g. 1):\n"
+                count = 1
+                for i in data_likers:
+                    message = message+  str(count)+". "+str(data_likers[i])+'\n'
+                    count += 1
+                send_message(user_id, message)
+                resetState(user_id, 3, 1, [])
 
 
 def initializeUser(user_id, name):
@@ -228,6 +340,9 @@ def MessageHandler(user_id, message_payload, name, user_id_state):
             addHandler(user_id, message_payload, name, user_id_state)
         elif user_id_state['chat_state']['fn_id'] == 2: # Send over to /remove handler
             removeHandler(user_id, message_payload, name, user_id_state)
+        elif user_id_state['chat_state']['fn_id'] == 3: # Send over to /send_message handler
+            send_messageHandler(user_id, message_payload, name, user_id_state)
+        
 
 
 @app.route("/", methods=['POST'])
