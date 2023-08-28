@@ -2,4 +2,4 @@ venv/
 .vs/
 __pycache__/
 private/
-
+ojas.pem
